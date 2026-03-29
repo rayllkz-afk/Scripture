@@ -1,0 +1,82 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+		local Players = cloneref(game:GetService("Players"))
+		local Player = Players.LocalPlayer
+		local Character = Player.Character or Player.CharacterAdded:Wait()
+		local Backpack = Player:WaitForChild("Backpack")
+		local Tool = Character:FindFirstChildOfClass("Tool")
+		if not Tool then return end
+		Tool.Parent = Backpack
+		task.wait(0.5)
+
+		local ToolName = Tool.Name
+		local ToolId = nil
+
+		local function getPing()
+			if typeof(Player.GetNetworkPing) == "function" then
+				local success, result = pcall(function()
+					return tonumber(string.match(Player:GetNetworkPing(), "%d+"))
+				end)
+				if success and result then
+					return result
+				end
+			end
+
+			local success2, pingStat = pcall(function()
+				return Players.LocalPlayer:FindFirstChild("PlayerGui"):FindFirstChild("Ping") or
+					Players.LocalPlayer:FindFirstChild("PlayerScripts"):FindFirstChild("Ping")
+			end)
+			if success2 and pingStat and pingStat:IsA("TextLabel") then
+				local num = tonumber(string.match(pingStat.Text, "%d+"))
+				if num then
+					return num
+				end
+			end
+
+			local t0 = tick()
+			local temp = Instance.new("BoolValue", ReplicatedStorage)
+			temp.Name = "PingTest_" .. tostring(math.random(10000,99999))
+			task.wait(0.1)
+			local t1 = tick()
+			temp:Destroy()
+
+			return math.clamp((t1 - t0) * 1000, 50, 300)
+		end
+
+		local ping = getPing()
+		local delay = 0.25 + ((math.clamp(ping, 0, 300) / 300) * 0.03)
+
+		local marketconnection = ReplicatedStorage.MarketItems.ChildAdded:Connect(function(item)
+			if item.Name == ToolName then
+				local owner = item:WaitForChild("owner", 2)
+				if owner and owner.Value == Player.Name then
+					ToolId = item:GetAttribute("SpecialId")
+				end
+			end
+		end)
+
+		task.spawn(function()
+			ReplicatedStorage.ListWeaponRemote:FireServer(ToolName, 99999)
+		end)
+
+		task.wait(delay)
+
+		task.spawn(function()
+			ReplicatedStorage.BackpackRemote:InvokeServer("Store", ToolName)
+		end)
+
+		task.wait(3)
+
+		if ToolId then
+			task.spawn(function()
+				ReplicatedStorage.BuyItemRemote:FireServer(ToolName, "Remove", ToolId)
+			end)
+		end
+
+		task.spawn(function()
+			ReplicatedStorage.BackpackRemote:InvokeServer("Grab", ToolName)
+		end)
+
+		marketconnection:Disconnect()
