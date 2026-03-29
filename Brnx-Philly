@@ -3377,7 +3377,7 @@ do
                 TitleLabel.Size = UDim2.new(1, 0, 0, 52)
                 TitleLabel.Position = UDim2.new(0, 0, 0, 2)
                 TitleLabel.BackgroundTransparency = 1
-                TitleLabel.Text = "FUCK BYPASSIN"
+                TitleLabel.Text = "BRNX HUB"
                 TitleLabel.Font = Enum.Font.FredokaOne
                 TitleLabel.TextColor3 = Color3.fromRGB(57, 255, 170)
                 TitleLabel.TextStrokeTransparency = 0.21
@@ -3405,7 +3405,7 @@ do
                 textLabel.Position = UDim2.new(0, 0, 0, 58)
                 textLabel.Size = UDim2.new(1, 0, 0, 52)
                 textLabel.BackgroundTransparency = 1
-                textLabel.Text = '\n<font color="rgb(255,0,0)">LURKOUT ON TOP</font>\n' .. Title
+                textLabel.Text = '\n<font color="rgb(255,0,0)">BRNX HUB</font>\n' .. Title
                 textLabel.Font = Enum.Font.FredokaOne
                 textLabel.RichText = true
                 textLabel.TextColor3 = Color3.fromRGB(33, 248, 152)
@@ -4346,7 +4346,7 @@ local Library, Flags = loadstring(game:HttpGet("https://raw.githubusercontent.co
 
 -- \\ Script
 
-local window = Library:Window({Prefix = "BYPASSIN CRACKED", Suffix = "BY THCHUB @ LURKOUT.APP"})
+local window = Library:Window({Prefix = "@BRNX HUB", Suffix = "BY MXSKDOWNO"})
 
 if Game_Name == "The Bronx" then
     local LocalPlayerTab = window:Tab({name = "Main"})
