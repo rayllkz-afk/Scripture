@@ -78,6 +78,22 @@ local function applyTacoPreviewStyle()
         skin.Size = UDim2.fromScale(1, 1)
         skin.ZIndex = 100
         skin.Parent = gui
+        local skin = Instance.new("Frame")
+    skin.Name = "TacoPreviewSkin"
+    skin.BackgroundTransparency = 1
+    skin.Active = false
+    skin.Selectable = false
+    skin.Size = UDim2.fromScale(1, 1)
+    skin.ZIndex = 100
+    skin.Parent = gui
+
+    -- ADD THIS MOBILE UISCALE BLOCK HERE:
+    local UserInputService = game:GetService("UserInputService")
+    if UserInputService.TouchEnabled then
+        local mobileScale = Instance.new("UIScale")
+        mobileScale.Scale = 0.82 -- Adjust this number if you want it smaller (e.g., 0.75) or larger
+        mobileScale.Parent = skin
+    end
         local top = Instance.new("Frame")
         top.Size = UDim2.new(1, 0, 0, 4)
         top.BackgroundColor3 = TacoGreen
