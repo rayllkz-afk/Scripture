@@ -1,0 +1,441 @@
+-- ==============================================================================
+-- REAP / 6a6y | THABRONX 3 - GUARANTEED NATIVE MOBILE GUI EDITION
+-- ==============================================================================
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer and (LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui"))
+
+-- Clean up any existing instances before loading
+if PlayerGui then
+    local oldGui = PlayerGui:FindFirstChild("Reap6a6yGui")
+    if oldGui then oldGui:Destroy() end
+    local oldMin = PlayerGui:FindFirstChild("ReapMinimizeButtonGui")
+    if oldMin then oldMin:Destroy() end
+end
+
+-- Safe Teleport Helper
+getgenv().Config = getgenv().Config or {}
+local Config = getgenv().Config
+if not Config.Teleport then
+    function Config:Teleport(targetCFrame)
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp and targetCFrame then
+            hrp.CFrame = typeof(targetCFrame) == "CFrame" and targetCFrame or CFrame.new(targetCFrame.Position)
+        end
+    end
+end
+
+-- Notification Helper
+local function sendNotification(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = tostring(title or "Reap / 6a6y"),
+            Text = tostring(text or ""),
+            Duration = tonumber(duration) or 3,
+        })
+    end)
+end
+
+-- ==============================================================================
+-- 1. MONEY AUTOMATION FUNCTIONS
+-- ==============================================================================
+
+function GetGoodCleaner()
+    if not workspace:FindFirstChild("1# Map") then return nil end
+    local CounterInstance
+    for _, V in pairs(workspace["1# Map"]:GetChildren()) do
+        if V:FindFirstChild("CounterM") then CounterInstance = V; break end
+    end
+    if not CounterInstance then return nil end
+    for _, v in pairs(CounterInstance:GetChildren()) do
+        local cp = v:FindFirstChild("CashPrompt", true)
+        local gp = v:FindFirstChild("GrabPrompt", true)
+        if cp and cp.Enabled and cp.ObjectText == "Count Bread" and gp and not gp.Enabled then
+            return v
+        end
+    end
+end
+
+function CleanAllFilthyMoney()
+    local Player = LocalPlayer
+    if not Player:FindFirstChild("stored") or not Player.stored:FindFirstChild("FilthyStack") or Player.stored.FilthyStack.Value == 0 then
+        sendNotification("Money", "You don't have any filthy cash!")
+        return
+    end
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local Cleaner = GetGoodCleaner()
+    if not Cleaner then sendNotification("Money", "Couldn't find a good cleaner!") return end
+    
+    pcall(function() Config:Teleport(Cleaner.WorldPivot or (Cleaner.CFrame or Cleaner:GetPivot())) end)
+    task.wait(0.4)
+    pcall(function() fireproximityprompt(Cleaner:FindFirstChild("CashPrompt", true)) end)
+    
+    local onObj = Cleaner:FindFirstChild("On", true)
+    if onObj then repeat task.wait() until onObj.Color == Color3.fromRGB(74,156,69) else task.wait(0.5) end
+    task.wait(0.5)
+    
+    pcall(function() fireproximityprompt(Cleaner:FindFirstChild("CashPrompt", true)) end)
+    task.wait(0.25)
+    pcall(function() Config:Teleport(Cleaner.WorldPivot or (Cleaner.CFrame or Cleaner:GetPivot())) end)
+    task.wait(0.4)
+    
+    repeat task.wait() until Player.Backpack:FindFirstChild("MoneyReady")
+    Player.Character.Humanoid:EquipTool(Player.Backpack["MoneyReady"])
+    repeat task.wait(1) pcall(function() fireproximityprompt(Cleaner:FindFirstChild("GrabPrompt", true)) end) until not Player.Character:FindFirstChild("MoneyReady")
+    
+    repeat task.wait() until Player.Backpack:FindFirstChild("BagOfMoney")
+    pcall(function() Config:Teleport(CFrame.new(-1217.30, 253.88, -3635.04)) end)
+    task.wait(0.4)
+    
+    if Player.Backpack:FindFirstChild("BagOfMoney") then Player.Character.Humanoid:EquipTool(Player.Backpack["BagOfMoney"]) end
+    task.wait(1)
+    pcall(function()
+        local atm = workspace:FindFirstChild("ATMMoney")
+        local prompt = atm and atm:FindFirstChild("Prompt", true)
+        if prompt then fireproximityprompt(prompt) end
+    end)
+end
+
+function InfMoneyHoldCupz()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local origin = hrp.CFrame
+    local sell = workspace:FindFirstChild("IceFruit Sell")
+    if not sell then sendNotification("Inf Money", "IceFruit Sell not found.") return end
+    
+    local prompt = sell:FindFirstChild("ProximityPrompt")
+    if not prompt then return end
+    prompt.HoldDuration = 0
+    prompt.MaxActivationDistance = math.huge
+    
+    Config:Teleport(sell.CFrame); task.wait(1)
+    for _ = 1, 250 do task.spawn(function() pcall(function() fireproximityprompt(prompt, 1) end) end) end
+    task.wait(5)
+    Config:Teleport(origin); task.wait(0.25)
+    getgenv().SwimMethod = false
+end
+
+function SetupInfiniteMoney()
+    for _, item in ipairs({"Ice-Fruit Bag","Ice-Fruit Cupz","FijiWater","FreshWater"}) do
+        task.spawn(function() pcall(function() ReplicatedStorage:WaitForChild("ExoticShopRemote"):InvokeServer(item) end) end)
+    end
+end
+
+function GenerateMaxIllegalMoney()
+    local Player = LocalPlayer
+    local function GetFruitCup()
+        for _, container in ipairs({Player.Backpack, Player.Character}) do
+            if container then
+                for _, tool in pairs(container:GetChildren()) do
+                    if tool:IsA("Tool") and tool.Name == "Ice-Fruit Cupz" then
+                        local cupPart = tool:FindFirstChild("IceFruit Cup")
+                        if cupPart and cupPart:FindFirstChild("IceFruit PunchMedium")
+                           and cupPart["IceFruit PunchMedium"].Transparency ~= 1 then
+                            return true, tool
+                        end
+                    end
+                end
+            end
+        end
+        return false, nil
+    end
+
+    local Found, Cup = GetFruitCup()
+    local oldCFrame = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character.HumanoidRootPart.CFrame
+    if Cup and Found and oldCFrame and workspace:FindFirstChild("IceFruit Sell") then
+        if Cup.Parent == Player.Backpack then Player.Character.Humanoid:EquipTool(Cup); task.wait(1) end
+        Config:Teleport(workspace["IceFruit Sell"].CFrame); task.wait(0.5)
+        for _ = 1, 4000 do task.spawn(function() pcall(function() fireproximityprompt(workspace["IceFruit Sell"].ProximityPrompt) end) end) end
+        Config:Teleport(oldCFrame); task.wait(8)
+        return
+    end
+
+    local items = {"FijiWater","FreshWater","Ice-Fruit Bag","Ice-Fruit Cupz"}
+    local stove
+    if workspace:FindFirstChild("CookingPots") then
+        for _, value in pairs(workspace.CookingPots:GetChildren()) do
+            if value:IsA("Model") then
+                local prompt = value:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if prompt and prompt.ActionText == "Turn On" and prompt.Enabled then stove = value; break end
+            end
+        end
+    end
+
+    for _, item in ipairs(items) do
+        if not Player.Backpack:FindFirstChild(item) then
+            pcall(function() ReplicatedStorage:WaitForChild("ExoticShopRemote"):InvokeServer(item) end)
+            task.wait(1)
+        end
+    end
+    for _, item in ipairs(items) do
+        if not Player.Backpack:FindFirstChild(item) then
+            sendNotification("Money", "Need more cash / missing items.")
+            return
+        end
+    end
+    if not stove then sendNotification("Money", "Could not find a cooking stove.") return end
+
+    Config:Teleport(stove.CookPart.CFrame); task.wait(1)
+    pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) end)
+    Player.Character.HumanoidRootPart.Anchored = true; task.wait(1.5)
+    pcall(function() fireproximityprompt(stove:FindFirstChildWhichIsA("ProximityPrompt", true)) end)
+    task.wait(2)
+    for _, item in ipairs({"FijiWater","FreshWater","Ice-Fruit Bag"}) do
+        if Player.Backpack:FindFirstChild(item) then
+            Player.Character.Humanoid:EquipTool(Player.Backpack[item]); task.wait(1)
+            pcall(function() fireproximityprompt(stove:FindFirstChildWhichIsA("ProximityPrompt", true)) end)
+            task.wait(3)
+        end
+    end
+    pcall(function() repeat task.wait() until stove.CookPart.Steam.LoadUI.Enabled == false end)
+    if not Player.Character:FindFirstChild("Ice-Fruit Cupz") and Player.Backpack:FindFirstChild("Ice-Fruit Cupz") then
+        Player.Character.Humanoid:EquipTool(Player.Backpack["Ice-Fruit Cupz"]); task.wait(1)
+    end
+    task.wait(1)
+    pcall(function() fireproximityprompt(stove:FindFirstChildWhichIsA("ProximityPrompt", true)) end)
+    task.wait(3)
+    Player.Character.HumanoidRootPart.Anchored = false
+    if workspace:FindFirstChild("IceFruit Sell") then
+        Config:Teleport(workspace["IceFruit Sell"].CFrame); task.wait(1)
+        Player.Character.HumanoidRootPart.Anchored = true; task.wait(1.5)
+        if not Player.Character:FindFirstChild("Ice-Fruit Cupz") and Player.Backpack:FindFirstChild("Ice-Fruit Cupz") then
+            Player.Character.Humanoid:EquipTool(Player.Backpack["Ice-Fruit Cupz"]); task.wait(1)
+        end
+        workspace["IceFruit Sell"].ProximityPrompt.HoldDuration = 0
+        for _ = 1, 4000 do task.spawn(function() pcall(function() fireproximityprompt(workspace["IceFruit Sell"].ProximityPrompt) end) end) end
+    end
+    Player.Character.HumanoidRootPart.Anchored = false
+    pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true) end)
+end
+
+-- Money Drop Background Loop
+getgenv().MoneyDropEnabled = getgenv().MoneyDropEnabled or false
+local function DropMoneyAmount(amount)
+    local BankRemote = ReplicatedStorage:FindFirstChild('BankProcessRemote', true)
+    if not BankRemote then return false end
+    local function send(...) if BankRemote.InvokeServer then return BankRemote:InvokeServer(...) elseif BankRemote.FireServer then return BankRemote:FireServer(...) end end
+    for _, args in ipairs({{"Drop", tostring(amount)}, {"Drop", tonumber(amount) or amount}}) do
+        local ok, r = pcall(send, table.unpack(args))
+        if ok and r ~= false then return true end
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if getgenv().MoneyDropEnabled then pcall(function() DropMoneyAmount(10000) end) end
+    end
+end)
+
+-- ==============================================================================
+-- 2. NATIVE MOBILE-OPTIMIZED GUI BUILDER (GUARANTEED VISIBLE)
+-- ==============================================================================
+
+local DarkGreen = Color3.fromRGB(12, 49, 27)
+local AccentGreen = Color3.fromRGB(55, 235, 120)
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "Reap6a6yGui"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = PlayerGui
+
+-- Mobile UIScale to prevent screen clipping
+if UserInputService.TouchEnabled then
+    local mobileScale = Instance.new("UIScale")
+    mobileScale.Name = "ReapMobileScale"
+    mobileScale.Scale = 0.65
+    mobileScale.Parent = screenGui
+end
+
+-- Main Frame Window
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.fromOffset(450, 340)
+mainFrame.Position = UDim2.new(0.5, -225, 0.5, -170)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = AccentGreen
+mainStroke.Thickness = 2
+mainStroke.Parent = mainFrame
+
+-- Top Bar Title & Branding
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 40)
+topBar.BackgroundColor3 = DarkGreen
+topBar.BorderSizePixel = 0
+topBar.Parent = mainFrame
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 10)
+topCorner.Parent = topBar
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -20, 1, 0)
+titleLabel.Position = UDim2.new(0, 15, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "REAP / 6a6y • Money Options"
+titleLabel.TextColor3 = AccentGreen
+titleLabel.TextSize = 16
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = topBar
+
+-- Scrolling Container for Buttons
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 1, -55)
+scrollFrame.Position = UDim2.new(0, 10, 0, 48)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 280)
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.Parent = mainFrame
+
+local uiLayout = Instance.new("UIListLayout")
+uiLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiLayout.Padding = UDim.new(0, 10)
+uiLayout.Parent = scrollFrame
+
+-- Helper to create styled buttons
+local function createButton(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.BackgroundColor3 = DarkGreen
+    btn.Text = name
+    btn.TextColor3 = AccentGreen
+    btn.TextSize = 14
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.Parent = scrollFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = AccentGreen
+    stroke.Transparency = 0.4
+    stroke.Parent = btn
+
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Helper to create toggle buttons
+local function createToggle(name, getState, setStateCallback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.BackgroundColor3 = DarkGreen
+    btn.TextColor3 = AccentGreen
+    btn.TextSize = 14
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.Parent = scrollFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = AccentGreen
+    stroke.Transparency = 0.4
+    stroke.Parent = btn
+
+    local function updateText()
+        btn.Text = name .. ": " .. (getState() and "[ON]" or "[OFF]")
+    end
+    updateText()
+
+    btn.MouseButton1Click:Connect(function()
+        local newState = not getState()
+        setStateCallback(newState)
+        updateText()
+    end)
+end
+
+-- Populate Money Options Buttons
+createButton("Clean Filthy Money", function()
+    CleanAllFilthyMoney()
+end)
+
+createButton("Generate Max Fruit Cup Money", function()
+    GenerateMaxIllegalMoney()
+end)
+
+createButton("Infinite Cupz Hold Method", function()
+    InfMoneyHoldCupz()
+end)
+
+createButton("Restock Exotic Shop Items", function()
+    SetupInfiniteMoney()
+end)
+
+createToggle("Auto Drop Money ($10k Loop)", 
+    function() return getgenv().MoneyDropEnabled end,
+    function(val) 
+        getgenv().MoneyDropEnabled = val
+        sendNotification("Money Drop", val and "Enabled" or "Disabled")
+    end
+)
+
+-- ==============================================================================
+-- 3. MINIMIZE & REOPEN FLOATING "B" BUTTON SYSTEM
+-- ==============================================================================
+
+local function setupMinimizeButton()
+    if not PlayerGui then return end
+
+    local minGui = Instance.new("ScreenGui")
+    minGui.Name = "ReapMinimizeButtonGui"
+    minGui.ResetOnSpawn = false
+    minGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    minGui.Parent = PlayerGui
+
+    local bButton = Instance.new("TextButton")
+    bButton.Name = "ToggleBButton"
+    bButton.Size = UDim2.fromOffset(46, 46)
+    bButton.Position = UDim2.new(0, 14, 0.5, -23)
+    bButton.BackgroundColor3 = DarkGreen
+    bButton.TextColor3 = AccentGreen
+    bButton.Text = "B"
+    bButton.TextSize = 20
+    bButton.Font = Enum.Font.GothamBold
+    bButton.BorderSizePixel = 0
+    bButton.Draggable = true
+    bButton.Active = true
+    bButton.Parent = minGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = bButton
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = AccentGreen
+    stroke.Transparency = 0.25
+    stroke.Thickness = 2
+    stroke.Parent = bButton
+
+    bButton.MouseButton1Click:Connect(function()
+        mainFrame.Visible = not mainFrame.Visible
+    end)
+end
+
+task.spawn(function()
+    task.wait(0.5)
+    setupMinimizeButton()
+end)
+
+sendNotification("Reap / 6a6y", "Money Options GUI Loaded Successfully!")
