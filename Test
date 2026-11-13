@@ -1,0 +1,198 @@
+--[[\
+    Project: Taco Scripts (Mobile Optimized Edition)
+    Environment: Roblox Luau / Delta Executor
+--]]
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer and (LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui"))
+
+-- 1. Initialize Preview Library & Window safely
+local PreviewLibary = loadstring(game:HttpGet("https://raw.githubusercontent.com/SvenaEE/PreviewLibary/refs/heads/main/PreviewLibary"))()
+
+local PreviewWindow = PreviewLibary:CreateWindow({
+    Name = "TacoScriptsPreview",
+    LoadingTitle = "Taco Scripts",
+    LoadingSubtitle = "Welcome to Taco Scripts • Mobile Edition",
+})
+
+local Options = getgenv().Options or {}
+local Toggles = getgenv().Toggles or {}
+getgenv().Options = Options
+getgenv().Toggles = Toggles
+
+local function getGui()
+    return PlayerGui and PlayerGui:FindFirstChild("TacoScriptsPreview")
+end
+
+-- 2. Theme Configuration
+local TacoGreen = Color3.fromRGB(55, 235, 120)
+local TacoDarkGreen = Color3.fromRGB(12, 49, 27)
+
+local function tacoColorize(object)
+    if object:IsA("GuiObject") then
+        local color = object.BackgroundColor3
+        if color.R > 0.62 and color.G > 0.25 and color.G < 0.95 and color.B < 0.35 then
+            object.BackgroundColor3 = TacoDarkGreen
+        end
+    end
+    if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+        local color = object.TextColor3
+        if color.R > 0.62 and color.G > 0.25 and color.G < 0.95 and color.B < 0.35 then
+            object.TextColor3 = TacoGreen
+        end
+    elseif object:IsA("UIStroke") then
+        local color = object.Color
+        if color.R > 0.62 and color.G > 0.25 and color.G < 0.95 and color.B < 0.35 then
+            object.Color = TacoGreen
+        end
+    elseif object:IsA("ImageLabel") or object:IsA("ImageButton") then
+        local color = object.ImageColor3
+        if color.R > 0.62 and color.G > 0.25 and color.G < 0.95 and color.B < 0.35 then
+            object.ImageColor3 = TacoGreen
+        end
+    end
+end
+
+-- 3. Advanced Mobile UIScale & Styling Injection
+local function applyTacoPreviewStyle()
+    task.spawn(function()
+        local gui
+        for _ = 1, 25 do
+            gui = getGui()
+            if gui then break end
+            task.wait(0.1)
+        end
+        if not gui then return end
+
+        -- Automatic Mobile Detection & Proportional Scaling
+        if UserInputService.TouchEnabled then
+            local mobileScale = gui:FindFirstChild("TacoMobileScale")
+            if not mobileScale then
+                mobileScale = Instance.new("UIScale")
+                mobileScale.Name = "TacoMobileScale"
+                mobileScale.Scale = 0.65 -- Perfect balance for mobile screen widths
+                mobileScale.Parent = gui
+            end
+        end
+
+        for _, object in ipairs(gui:GetDescendants()) do tacoColorize(object) end
+        gui.DescendantAdded:Connect(function(object)
+            task.defer(function() if object and object.Parent then tacoColorize(object) end end)
+        end)
+    end)
+end
+applyTacoPreviewStyle()
+
+-- 4. Notification Helper
+local function sendNotification(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = tostring(title or "Taco Scripts"),
+            Text = tostring(text or ""),
+            Duration = tonumber(duration) or 3,
+        })
+    end)
+end
+
+-- 5. Core Automation & Farming Systems
+local function GetGoodCleaner()
+    if not workspace:FindFirstChild("1# Map") then return nil end
+    local CounterInstance
+    for _, V in pairs(workspace["1# Map"]:GetChildren()) do
+        if V:FindFirstChild("CounterM") then CounterInstance = V; break end
+    end
+    if not CounterInstance then return nil end
+    for _, v in pairs(CounterInstance:GetChildren()) do
+        local cp = v:FindFirstChild("CashPrompt", true)
+        local gp = v:FindFirstChild("GrabPrompt", true)
+        if cp and cp.Enabled and cp.ObjectText == "Count Bread" and gp and not gp.Enabled then
+            return v
+        end
+    end
+end
+
+function CleanAllFilthyMoney()
+    local Player = LocalPlayer
+    if not Player:FindFirstChild("stored") or not Player.stored:FindFirstChild("FilthyStack") or Player.stored.FilthyStack.Value == 0 then
+        sendNotification("Money", "You don't have any filthy cash!"); return
+    end
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local Cleaner = GetGoodCleaner()
+    if not Cleaner then sendNotification("Money", "Couldn't find a good cleaner!"); return end
+    
+    pcall(function() Config:Teleport(Cleaner.WorldPivot or (Cleaner.CFrame or Cleaner:GetPivot())) end)
+    task.wait(0.4)
+    pcall(function() fireproximityprompt(Cleaner:FindFirstChild("CashPrompt", true)) end)
+    
+    local onObj = Cleaner:FindFirstChild("On", true)
+    if onObj then repeat task.wait() until onObj.Color == Color3.fromRGB(74,156,69) else task.wait(0.5) end
+    task.wait(0.5)
+    
+    pcall(function() fireproximityprompt(Cleaner:FindFirstChild("CashPrompt", true)) end)
+    task.wait(0.25)
+    pcall(function() Config:Teleport(Cleaner.WorldPivot or (Cleaner.CFrame or Cleaner:GetPivot())) end)
+    task.wait(0.4)
+    
+    repeat task.wait() until Player.Backpack:FindFirstChild("MoneyReady")
+    Player.Character.Humanoid:EquipTool(Player.Backpack["MoneyReady"])
+    repeat task.wait(1) pcall(function() fireproximityprompt(Cleaner:FindFirstChild("GrabPrompt", true)) end) until not Player.Character:FindFirstChild("MoneyReady")
+    
+    repeat task.wait() until Player.Backpack:FindFirstChild("BagOfMoney")
+    pcall(function() Config:Teleport(CFrame.new(-1217.30, 253.88, -3635.04)) end)
+    task.wait(0.4)
+    
+    if Player.Backpack:FindFirstChild("BagOfMoney") then Player.Character.Humanoid:EquipTool(Player.Backpack["BagOfMoney"]) end
+    task.wait(1)
+    pcall(function()
+        local atm = workspace:FindFirstChild("ATMMoney")
+        local prompt = atm and atm:FindFirstChild("Prompt", true)
+        if prompt then fireproximityprompt(prompt) end
+    end)
+end
+
+function InfMoneyHoldCupz()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local origin = hrp.CFrame
+    local sell = workspace:FindFirstChild("IceFruit Sell")
+    if not sell then sendNotification("Inf Money", "IceFruit Sell not found."); return end
+    
+    local prompt = sell:FindFirstChild("ProximityPrompt")
+    if not prompt then return end
+    prompt.HoldDuration = 0
+    prompt.MaxActivationDistance = math.huge
+    
+    Config:Teleport(sell.CFrame); task.wait(1)
+    for _ = 1, 250 do task.spawn(function() pcall(function() fireproximityprompt(prompt, 1) end) end) end
+    task.wait(5)
+    Config:Teleport(origin); task.wait(0.25)
+    getgenv().SwimMethod = false
+end
+
+function SetupInfiniteMoney()
+    for _, item in ipairs({"Ice-Fruit Bag","Ice-Fruit Cupz","FijiWater","FreshWater"}) do
+        task.spawn(function() pcall(function() ReplicatedStorage:WaitForChild("ExoticShopRemote"):InvokeServer(item) end) end)
+    end
+end
+
+-- Money Drop Background Loop
+getgenv().MoneyDropEnabled = getgenv().MoneyDropEnabled or false
+local function DropMoneyAmount(amount)
+    local BankRemote = ReplicatedStorage:FindFirstChild('BankProcessRemote', true)
+    if not BankRemote then return false end
+    local function send(...) if BankRemote.InvokeServer then return BankRemote:InvokeServer(...) elseif BankRemote.FireServer then return BankRemote:FireServer(...) end end
+    for _, args in ipairs({{"Drop", tostring(amount)}, {"Drop", tonumber(amount) or amount}}) do
+        local ok, r = pcall(send, table.unpack(args))
+        if ok and r ~= false then return true end
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if getgenv().MoneyDropEnabled then pcall(function() DropMoneyAmount(10000) end) end
+    end
+end)
