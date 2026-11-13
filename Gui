@@ -1,0 +1,1165 @@
+local Library, Window, Options, Toggles = (function()
+local PreviewLibary = loadstring(game:HttpGet("https://raw.githubusercontent.com/SvenaEE/PreviewLibary/refs/heads/main/PreviewLibary"))()
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer and (LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui"))
+
+    if PlayerGui then
+        local old = PlayerGui:FindFirstChild("TacoScriptsPreview")
+        if old then old:Destroy() end
+    end
+
+    local PreviewWindow = PreviewLibary:CreateWindow({
+        Name = "TacoScriptsPreview",
+        LoadingTitle = "Taco Scripts",
+        LoadingSubtitle = "Welcome to Taco Scripts • Mobile & PC Ready",
+    })
+
+    local Options = getgenv().Options or {}
+    local Toggles = getgenv().Toggles or {}
+    getgenv().Options = Options
+    getgenv().Toggles = Toggles
+
+    local function getGui()
+        return PlayerGui and PlayerGui:FindFirstChild("TacoScriptsPreview")
+    end
+
+    -- Clean Black & White Theme Colors
+    local TacoWhite = Color3.fromRGB(255, 255, 255)
+    local TacoBlack = Color3.fromRGB(15, 15, 15)
+    
+    local function tacoColorize(object)
+        if object:IsA("GuiObject") then
+            object.BackgroundColor3 = TacoBlack
+        end
+        if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+            object.TextColor3 = TacoWhite
+        elseif object:IsA("UIStroke") then
+            object.Color = TacoWhite
+        elseif object:IsA("ImageLabel") or object:IsA("ImageButton") then
+            object.ImageColor3 = TacoWhite
+        end
+    end
+
+    local function applyTacoPreviewStyle()
+        task.spawn(function()
+            local gui
+            for _ = 1, 25 do
+                gui = getGui()
+                if gui then break end
+                task.wait(0.1)
+            end
+            if not gui then return end
+
+            -- Automatic Mobile Scaling to prevent clipping off-screen
+            if UserInputService.TouchEnabled then
+                local mobileScale = gui:FindFirstChild("TacoMobileScale") or Instance.new("UIScale")
+                mobileScale.Name = "TacoMobileScale"
+                mobileScale.Scale = 0.55
+                mobileScale.Parent = gui
+            end
+
+            for _, object in ipairs(gui:GetDescendants()) do tacoColorize(object) end
+            gui.DescendantAdded:Connect(function(object)
+                task.defer(function() if object and object.Parent then tacoColorize(object) end end)
+            end)
+
+            local old = gui:FindFirstChild("TacoPreviewSkin")
+            if old then old:Destroy() end
+
+            local skin = Instance.new("Frame")
+            skin.Name = "TacoPreviewSkin"
+            skin.BackgroundTransparency = 1
+            skin.Active = false
+            skin.Selectable = false
+            skin.Size = UDim2.fromScale(1, 1)
+            skin.ZIndex = 100
+            skin.Parent = gui
+
+            local top = Instance.new("Frame")
+            top.Size = UDim2.new(1, 0, 0, 4)
+            top.BackgroundColor3 = TacoWhite
+            top.BorderSizePixel = 0
+            top.ZIndex = 100
+            top.Parent = skin
+
+            local gradient = Instance.new("UIGradient")
+            gradient.Color = ColorSequence.new(Color3.fromRGB(100, 100, 100), TacoWhite)
+            gradient.Parent = top
+
+            local badge = Instance.new("TextLabel")
+            badge.Position = UDim2.fromOffset(14, 11)
+            badge.Size = UDim2.fromOffset(146, 27)
+            badge.BackgroundColor3 = TacoBlack
+            badge.BorderSizePixel = 0
+            badge.Text = "TACO SCRIPTS"
+            badge.TextColor3 = TacoWhite
+            badge.Font = Enum.Font.GothamBold
+            badge.TextSize = 11
+            badge.ZIndex = 101
+            badge.Parent = skin
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 8)
+            corner.Parent = badge
+
+            local stroke = Instance.new("UIStroke")
+            stroke.Color = TacoWhite
+            stroke.Transparency = 0.35
+            stroke.Parent = badge
+        end)
+    end
+    applyTacoPreviewStyle()
+
+    local holderState = { _visible = true }
+    setmetatable(holderState, {
+        __index = function(self, key)
+            if key == "Visible" then
+                local gui = getGui()
+                return gui and gui.Enabled or self._visible
+            end
+            return rawget(self, key)
+        end,
+        __newindex = function(self, key, value)
+            if key == "Visible" then
+                self._visible = value == true
+                local gui = getGui()
+                if gui then gui.Enabled = self._visible end
+                return
+            end
+            rawset(self, key, value)
+        end,
+    })
+
+    local Library = {
+        Options = Options,
+        Toggles = Toggles,
+        Theme = {
+            Background = Color3.fromRGB(15, 15, 15),
+            Inline = Color3.fromRGB(25, 25, 25),
+            Outline = Color3.fromRGB(255, 255, 255),
+            Text = Color3.fromRGB(255, 255, 255),
+            ["Dark Text"] = Color3.fromRGB(180, 180, 180),
+            Element = Color3.fromRGB(30, 30, 30),
+            Accent = Color3.fromRGB(255, 255, 255),
+        },
+        _unloadCallbacks = {},
+        _activeWindow = nil,
+        _unloaded = false,
+    }
+
+    local function notify(first, second, third)
+        local title, text, duration
+        if type(first) == "table" then
+            title = tostring(first.Title or first.title or "Taco Scripts")
+            text = tostring(first.Content or first.content or first.Description or first.description or "")
+            duration = first.Duration or first.duration or second or 3
+        elseif type(second) == "string" then
+            title = tostring(first or "Taco Scripts")
+            text = second
+            duration = third or 3
+        else
+            title = "Taco Scripts"
+            text = tostring(first or "Notification")
+            duration = second or 3
+        end
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = title,
+                Text = text,
+                Duration = tonumber(duration) or 3,
+            })
+        end)
+    end
+
+    function Library:Notify(first, second, third)
+        if getgenv().MiamiSuppressNotifications then return end
+        notify(first, second, third)
+    end
+
+    function Library:ChangeTheme(name, color)
+        self.Theme[tostring(name)] = color
+    end
+
+    function Library:OnUnload(callback)
+        if type(callback) == "function" then table.insert(self._unloadCallbacks, callback) end
+    end
+
+    function Library:Unload()
+        if self._unloaded then return end
+        self._unloaded = true
+        for _, callback in ipairs(self._unloadCallbacks) do pcall(callback) end
+        local gui = getGui()
+        if gui then gui:Destroy() end
+        if getgenv().__TacoPreviewPort == self then getgenv().__TacoPreviewPort = nil end
+    end
+
+    function Library:SetDPIScale() end
+
+    local function safe(callback, ...)
+        if type(callback) ~= "function" then return end
+        local ok, err = pcall(callback, ...)
+        if not ok then warn(tostring(err)) end
+    end
+
+    local function makeControl(flag, default, callback, toggle)
+        flag = tostring(flag or ("TacoPreview_" .. tostring(math.random(100000, 999999))))
+        local control = Options[flag] or {}
+        control.Flag = flag
+        control.Value = default
+        control.Values = control.Values or {}
+        control._callbacks = control._callbacks or {}
+        control._callback = callback
+        control._building = true
+
+        function control:_fire(value)
+            self.Value = value
+            if self._building then return end
+            safe(self._callback, value)
+            for _, listener in ipairs(self._callbacks) do safe(listener, value) end
+        end
+
+        function control:OnChanged(callbackFn)
+            if type(callbackFn) == "function" then table.insert(self._callbacks, callbackFn) end
+            return self
+        end
+
+        function control:SetValue(value)
+            self:_fire(value)
+            return self
+        end
+
+        function control:Set(value)
+            return self:SetValue(value)
+        end
+
+        function control:SetValues(values)
+            self.Values = values or {}
+            return self
+        end
+
+        control.Refresh = control.SetValues
+
+        function control:SetValueRGB(color)
+            return self:SetValue(color)
+        end
+
+        function control:GetState()
+            return self.Value
+        end
+
+        function control:Lock() self.Locked = true return self end
+        function control:Unlock() self.Locked = false return self end
+        function control:SetVisible() return self end
+        function control:SetDisabled() return self end
+
+        Options[flag] = control
+        if toggle then Toggles[flag] = control end
+        return control
+    end
+
+    local function customLabel(section, text)
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 0, 20)
+        label.BackgroundTransparency = 1
+        label.Text = tostring(text or "")
+        label.TextColor3 = Color3.fromRGB(240, 240, 240)
+        label.TextSize = 12
+        label.Font = Enum.Font.GothamMedium
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.TextTruncate = Enum.TextTruncate.AtEnd
+        label.Parent = section.Inner
+        return label
+    end
+
+    local function parseKey(value)
+        if typeof(value) == "EnumItem" then return value end
+        local key = tostring(value or "RightShift"):gsub("Enum%.KeyCode%.", "")
+        return Enum.KeyCode[key] or Enum.KeyCode.RightShift
+    end
+
+    local Group = {}
+    Group.__index = Group
+
+    function Group:AddLabel(text)
+        local visual = customLabel(self.Raw, text)
+        local label = { _visual = visual, _group = self }
+        function label:SetText(value)
+            if self._visual then self._visual.Text = tostring(value or "") end
+            return self
+        end
+        function label:AddColorPicker(flag, data)
+            data = data or {}
+            local default = data.Default or Color3.fromRGB(255, 255, 255)
+            local control = makeControl(flag, default, data.Callback or data.callback, false)
+            self._group.Raw:CreateColorPicker({
+                Name = data.Title or data.Text or "Color",
+                Color = default,
+                Flag = tostring(flag),
+                Callback = function(value) control:_fire(value) end,
+            })
+            control._building = false
+            return control
+        end
+        function label:AddKeyPicker(flag, data)
+            data = data or {}
+            local default = parseKey(data.Default or "RightShift")
+            local control = makeControl(flag, default.Name, data.Callback or data.callback, false)
+            customLabel(self._group.Raw, "Keybind: " .. default.Name)
+            local connection = UserInputService.InputBegan:Connect(function(input, processed)
+                if processed or Library._unloaded then return end
+                if input.KeyCode == parseKey(control.Value) then
+                    Library.Toggle()
+                end
+            end)
+            function control:SetValue(value)
+                local key = parseKey(value)
+                self:_fire(key.Name)
+                return self
+            end
+            control._building = false
+            Library:OnUnload(function() if connection then connection:Disconnect() end end)
+            return control
+        end
+        return label
+    end
+
+    function Group:AddDivider()
+        local line = Instance.new("Frame")
+        line.Size = UDim2.new(1, 0, 0, 1)
+        line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        line.BackgroundTransparency = 0.5
+        line.BorderSizePixel = 0
+        line.Parent = self.Raw.Inner
+        return self
+    end
+
+    function Group:AddButton(textOrData, callback)
+        local data = type(textOrData) == "table" and textOrData or { Text = textOrData, Func = callback }
+        local title = data.Text or data.Name or data.Title or "Button"
+        local action = data.Func or data.Callback or callback
+        self.Raw:CreateButton({
+            Name = tostring(title),
+            Callback = function() safe(action) end,
+        })
+        return self
+    end
+
+    function Group:AddToggle(flag, data)
+        if type(flag) == "table" then data, flag = flag, nil end
+        data = data or {}
+        local default = data.Default == true or data.Value == true
+        local control = makeControl(flag or data.Flag, default, data.Callback or data.callback, true)
+        self.Raw:CreateToggle({
+            Name = data.Text or data.Name or tostring(flag),
+            CurrentValue = default,
+            Flag = tostring(flag or control.Flag),
+            Callback = function(value) control:_fire(value == true) end,
+        })
+        control._building = false
+        return control
+    end
+
+    function Group:AddSlider(flag, data)
+        if type(flag) == "table" then data, flag = flag, nil end
+        data = data or {}
+        local default = data.Default
+        if default == nil then default = data.Min or 0 end
+        local control = makeControl(flag or data.Flag, default, data.Callback or data.callback, false)
+        self.Raw:CreateSlider({
+            Name = data.Text or data.Name or tostring(flag),
+            Range = { tonumber(data.Min) or 0, tonumber(data.Max) or 100 },
+            Increment = data.Step or (data.Rounding and (1 / (10 ^ data.Rounding))) or 1,
+            Suffix = data.Suffix or "",
+            CurrentValue = default,
+            Flag = tostring(flag or control.Flag),
+            Callback = function(value) control:_fire(value) end,
+        })
+        control._building = false
+        return control
+    end
+
+    function Group:AddDropdown(flag, data)
+        if type(flag) == "table" then data, flag = flag, nil end
+        data = data or {}
+        local values = data.Values or data.Items or {}
+        local default = data.Default or data.Value or values[1]
+        local control = makeControl(flag or data.Flag, default, data.Callback or data.callback, false)
+        control.Values = values
+        self.Raw:CreateDropdown({
+            Name = data.Text or data.Name or tostring(flag),
+            Options = values,
+            CurrentOption = default,
+            Flag = tostring(flag or control.Flag),
+            Callback = function(value) control:_fire(value) end,
+        })
+        control._building = false
+        return control
+    end
+
+    function Group:AddInput(flag, data)
+        if type(flag) == "table" then data, flag = flag, nil end
+        data = data or {}
+        local default = tostring(data.Default or data.Value or "")
+        local control = makeControl(flag or data.Flag, default, data.Callback or data.callback, false)
+        self.Raw:CreateInput({
+            Name = data.Text or data.Name or tostring(flag),
+            PlaceholderText = data.Placeholder or "",
+            Flag = tostring(flag or control.Flag),
+            Callback = function(value)
+                if data.Numeric and tostring(value) ~= "" and tonumber(value) == nil then return end
+                control:_fire(value)
+            end,
+        })
+        control._building = false
+        return control
+    end
+
+    local function newGroup(section)
+        return setmetatable({ Raw = section }, Group)
+    end
+
+    local function newTab(rawTab)
+        local tab = { Raw = rawTab }
+        local function section(name, side)
+            if rawTab._colToggle ~= nil then
+                if side == 1 then
+                    rawTab._colToggle = false
+                else
+                    rawTab._colToggle = true
+                end
+            end
+            return newGroup(rawTab:CreateSection(tostring(name or "Group")))
+        end
+        function tab:AddLeftGroupbox(name) return section(name, 1) end
+        function tab:AddRightGroupbox(name) return section(name, 2) end
+        function tab:AddLeftTabbox(name)
+            local box = { _name = tostring(name or "Extra"), _tab = tab, _index = 0 }
+            function box:AddTab(tabName)
+                self._index = self._index + 1
+                return self._tab:AddLeftGroupbox(self._name .. " • " .. tostring(tabName or self._index))
+            end
+            return box
+        end
+        function tab:AddRightTabbox(name)
+            local box = { _name = tostring(name or "Extra"), _tab = tab, _index = 0 }
+            function box:AddTab(tabName)
+                self._index = self._index + 1
+                return self._tab:AddRightGroupbox(self._name .. " • " .. tostring(tabName or self._index))
+            end
+            return box
+        end
+        return tab
+    end
+
+local TabEmojis = {
+    Player = "👤",
+    Main = "🌮",
+    Farm = "💵",
+    Autofarm = "💵",
+    Extra = "✨",
+    ["Gun Mods"] = "🔫",
+    Visuals = "👁️",
+    Safe = "🔐",
+    ["Safe/Dupe"] = "🔐",
+    Settings = "⚙️",
+}
+
+local Window = { Holder = holderState, _isOpen = true }
+function Window:AddTab(name, icon)
+    local tabName = tostring(name or "Tab")
+    local emoji = TabEmojis[tabName] or "🌮"
+    return newTab(PreviewWindow:CreateTab(emoji .. "  " .. tabName, icon or 80758916183665))
+end
+function Window:SetOpen(value)
+    self._isOpen = value == true
+    self.Holder.Visible = self._isOpen
+end
+function Window:Destroy()
+    local gui = getGui()
+    if gui then gui:Destroy() end
+end
+
+Library._activeWindow = Window
+function Library.Toggle()
+    Window:SetOpen(not Window._isOpen)
+end
+
+getgenv().__TacoPreviewPort = Library
+getgenv().MiamiSuppressNotifications = true
+
+return Library, Window, Options, Toggles
+end)()
+local Tabs
+
+SenseESPInterface = loadstring(game:HttpGet("https://raw.githubusercontent.com/boshyxd/rayfield/refs/heads/main/SenseSource.luau"))()
+if SenseESPInterface then
+    Library:Notify("[Taco Scripts] ESP Menu\nLoading ESP...\nESP Menu library loaded successfully!\nESP Menu Initialized!", 2)
+    SenseESPInterface.Load()
+else
+    Library:Notify("Error\nFailed to load ESP Menu.", 3)
+end
+
+Tabs = {
+    Player = Window:AddTab('Player'),
+    Main = Window:AddTab('Main'),
+    Autofarm = Window:AddTab('Farm'),
+    Extra = Window:AddTab('Extra'),
+    GunMods = Window:AddTab('Gun Mods'),
+    Visuals = Window:AddTab('Visuals'),
+    ["Safe/Dupe"] = Window:AddTab('Safe'),
+    Settings = Window:AddTab('Settings'),
+}
+
+MiamiBrandGroup = Tabs.Settings:AddLeftGroupbox("🌮 Taco Scripts 🌮")
+MiamiBrandGroup:AddLabel("Script: Taco Scripts")
+MiamiBrandGroup:AddLabel("Discord: discord.gg/tacoscripts")
+MiamiBrandGroup:AddButton("🌮 Copy Discord", function()
+    if setclipboard then setclipboard("https://discord.gg/tacoscripts") end
+    Library:Notify("Taco Scripts\nCopied discord.gg/tacoscripts", 4)
+end)
+MiamiBrandGroup:AddButton("🌮 Test Button", function()
+    getgenv().MiamiSuppressNotifications = false
+    Library:Notify("Sament buttons are responding", 4)
+end)
+
+Players         = game:GetService("Players")
+ReplicatedStorage= game:GetService("ReplicatedStorage")
+RunService       = game:GetService("RunService")
+UserInputService = game:GetService("UserInputService")
+StarterGui       = game:GetService("StarterGui")
+LocalPlayer      = Players.LocalPlayer
+ProximityPromptService = game:GetService("ProximityPromptService")
+Lighting         = game:GetService("Lighting")
+CoreGui          = game:GetService("CoreGui")
+TweenService     = game:GetService("TweenService")
+Debris           = game:GetService("Debris")
+
+flags = {}
+
+MimaiUI = {
+    Accent = Color3.fromRGB(255, 255, 255),
+    AccentSoft = Color3.fromRGB(200, 200, 200),
+    Background = Color3.fromRGB(15, 15, 15),
+    Panel = Color3.fromRGB(25, 25, 25),
+    PanelSoft = Color3.fromRGB(35, 35, 35),
+    Outline = Color3.fromRGB(255, 255, 255),
+    Text = Color3.fromRGB(255, 255, 255),
+    Muted = Color3.fromRGB(180, 180, 180),
+    WatermarkStatus = "Loaded 🌮",
+    WatermarkKey = "RightShift",
+    FPS = 0,
+    Ping = "?",
+    Executor = (identifyexecutor and identifyexecutor()) or "Unknown",
+}
+
+function getMimaiUIParent()
+    local ok, parent = pcall(function() return CoreGui end)
+    if ok and parent then return parent end
+    local pg = LocalPlayer and LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if pg then return pg end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
+
+function applyCorner(instance, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = instance
+    return corner
+end
+
+function ensureMimaiVisualLayer()
+    if MimaiUI.Gui and MimaiUI.Gui.Parent then
+        return MimaiUI.Gui
+    end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "MimaiVisualLayer"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.DisplayOrder = 99999
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    gui.Parent = getMimaiUIParent()
+    MimaiUI.Gui = gui
+
+    local accentShadow = Instance.new("Frame")
+    accentShadow.Name = "AccentShadow"
+    accentShadow.AnchorPoint = Vector2.new(0.5, 0)
+    accentShadow.Position = UDim2.new(0.5, 0, 0, 10)
+    accentShadow.Size = UDim2.fromOffset(360, 8)
+    accentShadow.BackgroundColor3 = MimaiUI.Accent
+    accentShadow.BackgroundTransparency = 0.84
+    accentShadow.BorderSizePixel = 0
+    accentShadow.ZIndex = 1
+    accentShadow.Parent = gui
+    applyCorner(accentShadow, 999)
+
+    local accentBar = Instance.new("Frame")
+    accentBar.Name = "AccentBar"
+    accentBar.AnchorPoint = Vector2.new(0.5, 0)
+    accentBar.Position = UDim2.new(0.5, 0, 0, 11)
+    accentBar.Size = UDim2.fromOffset(280, 3)
+    accentBar.BackgroundColor3 = MimaiUI.Accent
+    accentBar.BorderSizePixel = 0
+    accentBar.ZIndex = 2
+    accentBar.Parent = gui
+    applyCorner(accentBar, 999)
+
+    local accentGradient = Instance.new("UIGradient")
+    accentGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, MimaiUI.AccentSoft),
+        ColorSequenceKeypoint.new(0.5, MimaiUI.Accent),
+        ColorSequenceKeypoint.new(1, MimaiUI.AccentSoft),
+    }
+    accentGradient.Parent = accentBar
+
+    local watermark = Instance.new("Frame")
+    watermark.Name = "Watermark"
+    watermark.Position = UDim2.new(0, 16, 0, 18)
+    watermark.Size = UDim2.fromOffset(520, 30)
+    watermark.BackgroundColor3 = MimaiUI.Panel
+    watermark.BackgroundTransparency = 0.08
+    watermark.BorderSizePixel = 0
+    watermark.ZIndex = 5
+    watermark.Parent = gui
+    applyCorner(watermark, 10)
+
+    local watermarkStroke = Instance.new("UIStroke")
+    watermarkStroke.Color = MimaiUI.Outline
+    watermarkStroke.Thickness = 1
+    watermarkStroke.Transparency = 0.15
+    watermarkStroke.Parent = watermark
+
+    local watermarkAccent = Instance.new("Frame")
+    watermarkAccent.Name = "Accent"
+    watermarkAccent.Position = UDim2.new(0, 8, 0.5, -6)
+    watermarkAccent.Size = UDim2.fromOffset(3, 12)
+    watermarkAccent.BackgroundColor3 = MimaiUI.Accent
+    watermarkAccent.BorderSizePixel = 0
+    watermarkAccent.ZIndex = 6
+    watermarkAccent.Parent = watermark
+    applyCorner(watermarkAccent, 999)
+
+    local watermarkText = Instance.new("TextLabel")
+    watermarkText.Name = "Text"
+    watermarkText.BackgroundTransparency = 1
+    watermarkText.Position = UDim2.new(0, 18, 0, 0)
+    watermarkText.Size = UDim2.new(1, -28, 1, 0)
+    watermarkText.Font = Enum.Font.GothamSemibold
+    watermarkText.TextSize = 13
+    watermarkText.TextXAlignment = Enum.TextXAlignment.Left
+    watermarkText.RichText = true
+    watermarkText.TextColor3 = MimaiUI.Text
+    watermarkText.ZIndex = 6
+    watermarkText.Parent = watermark
+    MimaiUI.WatermarkLabel = watermarkText
+
+    local notifyHolder = Instance.new("Frame")
+    notifyHolder.Name = "NotifyHolder"
+    notifyHolder.AnchorPoint = Vector2.new(1, 0)
+    notifyHolder.Position = UDim2.new(1, -18, 0, 60)
+    notifyHolder.Size = UDim2.fromOffset(320, 420)
+    notifyHolder.BackgroundTransparency = 1
+    notifyHolder.ZIndex = 20
+    notifyHolder.Parent = gui
+    MimaiUI.NotificationHolder = notifyHolder
+
+    local notifyLayout = Instance.new("UIListLayout")
+    notifyLayout.Padding = UDim.new(0, 8)
+    notifyLayout.FillDirection = Enum.FillDirection.Vertical
+    notifyLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    notifyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    notifyLayout.Parent = notifyHolder
+
+    task.spawn(function()
+        local pulse = 0
+        while gui.Parent do
+            pulse = (pulse + 0.03) % 1
+            accentShadow.BackgroundTransparency = 0.87 - (math.sin(pulse * math.pi * 2) * 0.04)
+            task.wait(0.05)
+        end
+    end)
+
+    return gui
+end
+
+function updateWatermarkText()
+    ensureMimaiVisualLayer()
+    if not MimaiUI.WatermarkLabel then return end
+    MimaiUI.WatermarkLabel.Text = string.format(
+        '<font color="#FFFFFF">Taco Scripts</font>  •  <font color="#CCCCCC">discord.gg/tacoscripts</font>  •  <font color="#FFFFFF">%s</font>  •  <font color="#AAAAAA">%s</font>  •  <font color="#FFFFFF">%s FPS</font>  •  <font color="#FFFFFF">%sms</font>  •  <font color="#AAAAAA">%s</font>',
+        tostring(MimaiUI.WatermarkStatus or "Loaded"),
+        tostring(MimaiUI.WatermarkKey or "RightShift"),
+        tostring(MimaiUI.FPS or 0),
+        tostring(MimaiUI.Ping or "?"),
+        tostring(MimaiUI.Executor or "Unknown")
+    )
+end
+
+function setWatermarkState(status, keybind)
+    if status then MimaiUI.WatermarkStatus = tostring(status) end
+    if keybind then MimaiUI.WatermarkKey = tostring(keybind) end
+    updateWatermarkText()
+end
+
+function updateMiamiWatermarkStats()
+    local lastUpdate = os.clock()
+    local frames = 0
+    RunService.RenderStepped:Connect(function()
+        frames += 1
+        local now = os.clock()
+        if now - lastUpdate >= 1 then
+            MimaiUI.FPS = frames
+            frames = 0
+            lastUpdate = now
+            pcall(function()
+                local stats = game:GetService("Stats")
+                local pingText = stats.Network.ServerStatsItem["Data Ping"]:GetValueString()
+                MimaiUI.Ping = tostring(pingText):match("%d+") or "?"
+            end)
+            updateWatermarkText()
+        end
+    end)
+end
+
+task.defer(updateMiamiWatermarkStats)
+
+function playMimaiLoadSplash()
+    if MimaiUI.SplashPlayed then return end
+    MimaiUI.SplashPlayed = true
+
+    local gui = ensureMimaiVisualLayer()
+    local splash = Instance.new("Frame")
+    splash.Name = "LoadSplash"
+    splash.AnchorPoint = Vector2.new(0.5, 0.5)
+    splash.Position = UDim2.new(0.5, 0, 0.5, 0)
+    splash.Size = UDim2.fromOffset(0, 0)
+    splash.BackgroundColor3 = MimaiUI.Panel
+    splash.BackgroundTransparency = 0.04
+    splash.BorderSizePixel = 0
+    splash.ClipsDescendants = true
+    splash.ZIndex = 50
+    splash.Parent = gui
+    applyCorner(splash, 14)
+
+    local splashStroke = Instance.new("UIStroke")
+    splashStroke.Color = MimaiUI.Accent
+    splashStroke.Thickness = 1.3
+    splashStroke.Transparency = 0.15
+    splashStroke.Parent = splash
+
+    local splashTitle = Instance.new("TextLabel")
+    splashTitle.BackgroundTransparency = 1
+    splashTitle.Position = UDim2.new(0, 0, 0, 16)
+    splashTitle.Size = UDim2.new(1, 0, 0, 28)
+    splashTitle.Font = Enum.Font.GothamBlack
+    splashTitle.TextSize = 22
+    splashTitle.RichText = true
+    splashTitle.Text = '<font color="#FFFFFF">Taco Scripts</font>'
+    splashTitle.TextColor3 = MimaiUI.Text
+    splashTitle.ZIndex = 51
+    splashTitle.Parent = splash
+
+    local splashSub = Instance.new("TextLabel")
+    splashSub.BackgroundTransparency = 1
+    splashSub.Position = UDim2.new(0, 0, 0, 46)
+    splashSub.Size = UDim2.new(1, 0, 0, 20)
+    splashSub.Font = Enum.Font.GothamSemibold
+    splashSub.TextSize = 12
+    splashSub.Text = 'Welcome to Taco Scripts • Have fun'
+    splashSub.TextColor3 = MimaiUI.Muted
+    splashSub.ZIndex = 51
+    splashSub.Parent = splash
+
+    local barBack = Instance.new("Frame")
+    barBack.Position = UDim2.new(0, 18, 1, -22)
+    barBack.Size = UDim2.new(1, -36, 0, 6)
+    barBack.BackgroundColor3 = MimaiUI.PanelSoft
+    barBack.BorderSizePixel = 0
+    barBack.ZIndex = 51
+    barBack.Parent = splash
+    applyCorner(barBack, 999)
+
+    local barFill = Instance.new("Frame")
+    barFill.Size = UDim2.new(0, 0, 1, 0)
+    barFill.BackgroundColor3 = MimaiUI.Accent
+    barFill.BorderSizePixel = 0
+    barFill.ZIndex = 52
+    barFill.Parent = barBack
+    applyCorner(barFill, 999)
+
+    TweenService:Create(splash, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.fromOffset(340, 108)}):Play()
+    task.wait(0.08)
+    TweenService:Create(barFill, TweenInfo.new(0.85, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+    task.wait(1.15)
+
+    TweenService:Create(splashTitle, TweenInfo.new(0.18), {TextTransparency = 1, TextStrokeTransparency = 1}):Play()
+    TweenService:Create(splashSub, TweenInfo.new(0.18), {TextTransparency = 1}):Play()
+    TweenService:Create(barBack, TweenInfo.new(0.18), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(barFill, TweenInfo.new(0.18), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(splashStroke, TweenInfo.new(0.18), {Transparency = 1}):Play()
+    TweenService:Create(splash, TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1}):Play()
+    task.wait(0.25)
+    if splash then splash:Destroy() end
+end
+
+function createNotificationCard(title, body, duration)
+    ensureMimaiVisualLayer()
+    if not MimaiUI.NotificationHolder then return end
+
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, 0)
+    card.BackgroundColor3 = MimaiUI.Panel
+    card.BackgroundTransparency = 0.06
+    card.BorderSizePixel = 0
+    card.ClipsDescendants = true
+    card.ZIndex = 21
+    card.Parent = MimaiUI.NotificationHolder
+    applyCorner(card, 12)
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = MimaiUI.Outline
+    stroke.Transparency = 0.1
+    stroke.Thickness = 1
+    stroke.Parent = card
+
+    local accent = Instance.new("Frame")
+    accent.Size = UDim2.fromOffset(4, 58)
+    accent.Position = UDim2.new(0, 8, 0, 8)
+    accent.BackgroundColor3 = MimaiUI.Accent
+    accent.BorderSizePixel = 0
+    accent.ZIndex = 22
+    accent.Parent = card
+    applyCorner(accent, 999)
+
+    local accentGradient = Instance.new("UIGradient")
+    accentGradient.Rotation = 90
+    accentGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, MimaiUI.AccentSoft),
+        ColorSequenceKeypoint.new(1, MimaiUI.Accent),
+    }
+    accentGradient.Parent = accent
+
+    local progress = Instance.new("Frame")
+    progress.AnchorPoint = Vector2.new(0, 1)
+    progress.Position = UDim2.new(0, 14, 1, -6)
+    progress.Size = UDim2.new(1, -28, 0, 3)
+    progress.BackgroundColor3 = MimaiUI.Accent
+    progress.BorderSizePixel = 0
+    progress.ZIndex = 23
+    progress.Parent = card
+    applyCorner(progress, 999)
+    local progressGradient = Instance.new("UIGradient")
+    progressGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, MimaiUI.AccentSoft),
+        ColorSequenceKeypoint.new(1, MimaiUI.Accent),
+    }
+    progressGradient.Parent = progress
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Position = UDim2.new(0, 22, 0, 10)
+    titleLabel.Size = UDim2.new(1, -34, 0, 18)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 13
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Text = tostring(title or "🌮 Taco Scripts")
+    titleLabel.TextColor3 = MimaiUI.Text
+    titleLabel.ZIndex = 22
+    titleLabel.Parent = card
+
+    local bodyLabel = Instance.new("TextLabel")
+    bodyLabel.BackgroundTransparency = 1
+    bodyLabel.Position = UDim2.new(0, 22, 0, 28)
+    bodyLabel.Size = UDim2.new(1, -34, 0, 28)
+    bodyLabel.Font = Enum.Font.GothamSemibold
+    bodyLabel.TextSize = 12
+    bodyLabel.TextWrapped = true
+    bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
+    bodyLabel.Text = tostring(body or "")
+    bodyLabel.TextColor3 = MimaiUI.Muted
+    bodyLabel.ZIndex = 22
+    bodyLabel.Parent = card
+
+    local targetHeight = 68
+    TweenService:Create(card, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, targetHeight)}):Play()
+    TweenService:Create(progress, TweenInfo.new(duration or 4.5, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 3)}):Play()
+
+    task.delay(duration or 4.5, function()
+        if not card or not card.Parent then return end
+        TweenService:Create(titleLabel, TweenInfo.new(0.18), {TextTransparency = 1}):Play()
+        TweenService:Create(bodyLabel, TweenInfo.new(0.18), {TextTransparency = 1}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.18), {Transparency = 1}):Play()
+        TweenService:Create(accent, TweenInfo.new(0.18), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(progress, TweenInfo.new(0.18), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(card, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}):Play()
+        Debris:AddItem(card, 0.28)
+    end)
+end
+
+function sendNotification(title, text, duration)
+    if getgenv().MiamiSuppressNotifications then
+        return
+    end
+    pcall(createNotificationCard, title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = tostring(title or "🌮 Taco Scripts"),
+            Text = tostring(text or ""),
+            Duration = duration or 5,
+        })
+    end)
+end
+
+function notifyToggle(name, enabled)
+    sendNotification(name, name .. (enabled and " enabled" or " disabled"))
+end
+
+function normalizeDropdownValue(v)
+    return tostring(v)
+end
+
+ensureMimaiVisualLayer()
+updateWatermarkText()
+task.defer(playMimaiLoadSplash)
+
+getgenv().SwimMethod = getgenv().SwimMethod or false
+Config = {}
+function Config:Teleport(targetCFrame)
+    local lp = Players.LocalPlayer
+    local char = lp.Character or lp.CharacterAdded:Wait()
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hum or not hrp or not targetCFrame then return false end
+
+    getgenv().SwimMethod = true
+    hum:ChangeState(Enum.HumanoidStateType.FallingDown)
+
+    local n = 1
+    local waitStarted = os.clock()
+    repeat
+        task.wait()
+        n = n + 1
+    until (n >= 40 and not lp:GetAttribute("LastACPos"))
+        or (os.clock() - waitStarted >= 2.5)
+
+    for _ = 1, 3 do
+        if not hrp.Parent then break end
+        hrp.CFrame = targetCFrame
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        task.wait()
+    end
+
+    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+    getgenv().SwimMethod = false
+    return true
+end
+
+task.spawn(function()
+    while task.wait() do
+        if getgenv().SwimMethod then
+            local lp = Players.LocalPlayer
+            local char = lp.Character
+            if char and char:FindFirstChildWhichIsA("Humanoid") then
+                char:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.FallingDown)
+            end
+        end
+    end
+end)
+
+WeaponMods = {
+    InfiniteAmmo=false, InfiniteClips=false, Bullets80k=false,
+    ModifyRecoilValue=false, ModifySpreadValue=false, DisableJamming=false,
+    InstantReload=false, InstantEquip=false, ModifyFireRate=false,
+    Automatic=false, DamageAmplified=false, SpoofAccuracy=false,
+    InfiniteDamage=false,
+    ReloadSpeed=0.2, EquipSpeed=0.2,
+    FireRateSpeed=50, SpreadPercentage=50, RecoilPercentage=50,
+}
+GunOriginalColors = {}
+GunChams = false
+RainbowGun = false
+GunChamsColor = Color3.fromRGB(255,255,255)
+
+function getEquippedGunSetting()
+    local character = LocalPlayer.Character
+    if not character then return nil, nil end
+    local tool = character:FindFirstChildOfClass("Tool")
+    if not tool or not tool:FindFirstChild("Setting") then return nil, nil end
+    local ok, settings = pcall(require, tool.Setting)
+    if ok and type(settings) == "table" then return tool, settings end
+end
+
+function applyAllWeaponMods()
+    local tool, settings = getEquippedGunSetting()
+    if not settings then return end
+    pcall(function()
+        if WeaponMods.InfiniteAmmo then settings.Ammo=99999; settings.AmmoPerMag=99999; settings.LimitedAmmoEnabled=false end
+        if WeaponMods.InfiniteClips then settings.Ammo=80000; settings.AmmoPerMag=80000; settings.LimitedAmmoEnabled=false end
+        if WeaponMods.Bullets80k then
+            settings.Ammo=80000; settings.AmmoPerMag=80000; settings.LimitedAmmoEnabled=false
+            local gunLocal = tool:FindFirstChild("GunScript_Local")
+            if gunLocal and type(getsenv) == "function" then
+                pcall(function()
+                    local env = getsenv(gunLocal)
+                    if env and type(env.Reload) == "function" and type(debug.setupvalue) == "function" then
+                        debug.setupvalue(env.Reload, 1, 80000); debug.setupvalue(env.Reload, 3, 80000)
+                    end
+                end)
+            end
+        end
+        if WeaponMods.ModifyRecoilValue then settings.Recoil=0; settings.CameraRecoilingEnabled=false end
+        if WeaponMods.ModifySpreadValue then settings.Spread=0; settings.SpreadX=0; settings.SpreadY=0; settings.Accuracy=1 end
+        if WeaponMods.DisableJamming then settings.JamChance=0 end
+        if WeaponMods.InstantReload then settings.ReloadTime = WeaponMods.ReloadSpeed or 0.1 end
+        if WeaponMods.InstantEquip then settings.EquipTime = WeaponMods.EquipSpeed or 0.1; settings.EquippingTime = WeaponMods.EquipSpeed or 0.1 end
+        if WeaponMods.ModifyFireRate then settings.FireRate = 0 end
+        if WeaponMods.Automatic then settings.Auto = true end
+        if (WeaponMods.DamageAmplified or WeaponMods.InfiniteDamage) then settings.BaseDamage = 1e9 end
+        if WeaponMods.SpoofAccuracy then settings.Accuracy = 1 end
+    end)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    character.ChildAdded:Connect(function(c) if c:IsA("Tool") then task.defer(applyAllWeaponMods) end end)
+end)
+if LocalPlayer.Character then
+    LocalPlayer.Character.ChildAdded:Connect(function(c) if c:IsA("Tool") then task.defer(applyAllWeaponMods) end end)
+end
+task.spawn(function() while task.wait(0.25) do pcall(applyAllWeaponMods) end end)
+
+function MianiForce80kBullets()
+    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if not tool then sendNotification("Gun Mods","Hold a gun first!") return end
+    pcall(function()
+        if tool:FindFirstChild("Setting") then
+            local config = require(tool.Setting)
+            if type(config) == "table" then
+                config.Ammo=80000; config.AmmoPerMag=80000; config.LimitedAmmoEnabled=false
+            end
+        end
+        local gunLocal = tool:FindFirstChild("GunScript_Local")
+        if gunLocal and type(getsenv) == "function" then
+            local env = getsenv(gunLocal)
+            if env and type(env.Reload) == "function" and type(debug.setupvalue) == "function" then
+                debug.setupvalue(env.Reload, 1, 80000); debug.setupvalue(env.Reload, 3, 80000)
+            end
+        end
+    end)
+    sendNotification("Gun Mods","Forced 80k bullets on current gun.")
+end
+
+function MianiUpdateGunColor()
+    if not GunChams then return end
+    local char = LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    if not tool then return end
+    for _, v in pairs(tool:GetDescendants()) do
+        if v:IsA("BasePart") then
+            if not GunOriginalColors[v] then GunOriginalColors[v] = v.Color end
+            if RainbowGun then v.Color = Color3.fromHSV((tick() % 5) / 5, 1, 1)
+            else v.Color = GunChamsColor or Color3.fromRGB(255,255,255) end
+            v.Material = Enum.Material.Neon
+        end
+    end
+end
+function MianiRestoreGunColor()
+    for part, color in pairs(GunOriginalColors) do
+        if part and part.Parent then part.Color=color; part.Material=Enum.Material.Plastic end
+    end
+    GunOriginalColors = {}
+end
+RunService.RenderStepped:Connect(function() pcall(MianiUpdateGunColor) end)
+
+MianiEmotes = {
+    ["CSnoop"] = 86123328011397,
+    ["Air Cycle"] = 94324173536622,
+    ["Assumptions"] = 91294374426630,
+    ["Basketball Headspin"] = 92854797386719,
+    ["Beat Da Koto Nai"] = 93497729736287,
+    ["Biblically Accurate"] = 109873544976020,
+    ["Billy Bounce"] = 137501135905857,
+    ["Bird"] = 85513310484654,
+    ["Caramelldansen"] = 88315693621494,
+    ["Chinese Dance"] = 131758838511368,
+    ["Classic Walk"] = 107806791584829,
+    ["Cute Stomach Lay"] = 80754582835479,
+    ["Da Hood Dance"] = 108171959207138,
+    ["Fake Death"] = 88130117312312,
+    ["Fight Stance"] = 116763940575803,
+    ["Float"] = 89523370947906,
+    ["Lay Float"] = 77840765435893,
+    ["Floppin Fish"] = 79075971527754,
+    ["Flying"] = 138433137191760,
+    ["Flying Legs"] = 130932988394284,
+    ["Fropper"] = 116039975531632,
+    ["Fumo Flush"] = 107217181254431,
+    ["Shoulder Taps"] = 85422671683973,
+    ["Helicopter"] = 95301257497525,
+    ["Helicopter 2"] = 91257498644328,
+    ["Jackhammer"] = 91423662648449,
+    ["Jojo Pose"] = 120629563851640,
+    ["Laced"] = 135611169366768,
+    ["Buddha"] = 86872878957632,
+    ["Monstermash"] = 137883764619555,
+    ["Oh Who Is You"] = 81389876138766,
+    ["Parrot"] = 101810746304426,
+    ["Push Up"] = 115703320436202,
+    ["Rizz Backup"] = 131205329995035,
+    ["Shot"] = 102691551292124,
+    ["Slickback"] = 74288964113793,
+    ["Soda Pop"] = 105459130960429,
+    ["Take The L"] = 78653596566468,
+    ["The Worm"] = 90333292347820,
+    ["Spider Man Hang"] = 128616254665784,
+    ["Weird Boy"] = 87025086742503,
+    ["Xavier"] = 90802740360125,
+    ["Dougie"] = 126035888065434,
+    ["BACKFLIP"] = 15693621070,
+}
+MianiEmoteNames = {}
+for n in pairs(MianiEmotes) do table.insert(MianiEmoteNames, n) end
+table.sort(MianiEmoteNames)
+MianiSelectedEmoteName = "Take The L"
+MianiCurrentEmoteTrack = nil
+MianiEmoteAnimCache = {}
+MianiEmoteSettings = { Loop = true }
+
+function MianiGetEmoteAnimator()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hum  = char and char:FindFirstChildOfClass("Humanoid")
+    if not hum then return nil end
+    local a = hum:FindFirstChildOfClass("Animator")
+    if not a then a = Instance.new("Animator"); a.Parent = hum end
+    return a
+end
+function MianiStopAllTracks()
+    local a = MianiGetEmoteAnimator()
+    if a then for _, t in ipairs(a:GetPlayingAnimationTracks()) do pcall(function() t:Stop(0.1) end) end end
+    MimaiCurrentEmoteTrack = nil
+end
+function MianiPlayEmoteById(id, name)
+    id = tonumber(id); if not id then return end
+    local animator = MianiGetEmoteAnimator(); if not animator then return end
+    MimaiStopAllTracks()
+    local anim = MianiEmoteAnimCache[id]
+    if not anim then
+        anim = Instance.new("Animation"); anim.AnimationId = "rbxassetid://" .. tostring(id)
+        MianiEmoteAnimCache[id] = anim
+    end
+    local ok, track = pcall(function()
+        local t = animator:LoadAnimation(anim)
+        t.Priority = Enum.AnimationPriority.Action
+        t.Looped = MianiEmoteSettings.Loop
+        t:Play(0.1)
+        return t
+    end)
+    if ok and track then
+        MimaiCurrentEmoteTrack = track
+        sendNotification("Emotes","Playing: "..tostring(name or id))
+    end
+end
